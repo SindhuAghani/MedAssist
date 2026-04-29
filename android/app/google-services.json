@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "57788957382",
+    "project_id": "mindheal-38fcc",
+    "storage_bucket": "mindheal-38fcc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:57788957382:android:bbca81b6c0e3ad1d574dc7",
+        "android_client_info": {
+          "package_name": "com.example.mindheal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDozUwU-cVNk16PnM5d7aZFyod5iCTw8Ag"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
