@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -31,9 +33,9 @@ class TNotificationService extends GetxService {
 
   initializeNotifications() async {
     await requestPermission();
-    _initializeLocalNotifications();
+    await _initializeLocalNotifications();
     _setupFirebaseListeners();
-    // _retrieveFCMToken();
+    await _syncFcmToken();
   }
 
   /// -- Request Permission on App Launch
@@ -68,9 +70,9 @@ class TNotificationService extends GetxService {
     return token ?? '';
   }
 
-  void _initializeLocalNotifications() {
+  Future<void> _initializeLocalNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@drawable/ic_notification_icon');
+    AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings();
 
@@ -79,7 +81,18 @@ class TNotificationService extends GetxService {
       iOS: initializationSettingsDarwin,
     );
 
-    _localNotificationsPlugin.initialize(
+    await _localNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'medication_reminders',
+            'Medication reminders',
+            description: 'Dose reminders and caregiver alerts',
+            importance: Importance.max,
+          ),
+        );
+
+    await _localNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: _onSelectNotification,
     );
@@ -89,8 +102,31 @@ class TNotificationService extends GetxService {
   void _setupFirebaseListeners() {
     FirebaseMessaging.onMessage.listen(_onMessageReceived);
     FirebaseMessaging.onMessageOpenedApp.listen(_onNotificationOpenedApp);
+    FirebaseMessaging.instance.onTokenRefresh.listen(_saveTokenForCurrentUser);
     // Use the top-level background handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
+
+  Future<void> _syncFcmToken() async {
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token != null && token.isNotEmpty) {
+      await _saveTokenForCurrentUser(token);
+    }
+  }
+
+  Future<void> _saveTokenForCurrentUser(String token) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (userId.isEmpty) return;
+
+      await FirebaseFirestore.instance.collection('Users').doc(userId).set({
+        'fcmToken': token,
+        'fcmTokens': FieldValue.arrayUnion([token]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      if (kDebugMode) print('Failed to save FCM token: $e');
+    }
   }
 
   void _onMessageReceived(RemoteMessage message) async {
@@ -109,7 +145,7 @@ class TNotificationService extends GetxService {
     final String? parameter = message.data['id'];
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'channel_id', 'channel_name',
+        'medication_reminders', 'Medication reminders',
         importance: Importance.max, priority: Priority.high, ticker: 'ticker');
     const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
 
@@ -142,7 +178,12 @@ class TNotificationService extends GetxService {
 
   Future<void> _onSelectNotification(NotificationResponse notificationResponse) async {
     if (notificationResponse.payload != null && notificationResponse.payload!.isNotEmpty) {
-      Get.toNamed(notificationResponse.payload!);
+      final uri = Uri.tryParse(notificationResponse.payload!);
+      if (uri != null) {
+        Get.toNamed(uri.path, parameters: uri.queryParameters);
+      } else {
+        Get.toNamed(notificationResponse.payload!);
+      }
     }
   }
 

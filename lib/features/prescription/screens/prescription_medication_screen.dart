@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mindheal/common/widgets/custom_shapes/containers/t_container.dart';
+import 'package:mindheal/data/services/reminders/medication_dose_model.dart';
 import 'package:mindheal/features/prescription/controller/prescription_medication_controller.dart';
 import 'package:mindheal/features/prescription/models/prescription_model.dart';
 import 'package:mindheal/routes/routes.dart';
@@ -90,7 +91,7 @@ class _PatientMedicationsScreenState extends State<PatientMedicationsScreen> {
 
   /// Builds the 'Today's Medications' section with swipeable tiles.
   Widget _buildTodaysMedications(PatientMedicationsController controller, bool isDark) {
-    final todaysMeds = controller.getTodaysMedications();
+    final todayDoses = controller.todayDoses;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,9 +103,9 @@ class _PatientMedicationsScreenState extends State<PatientMedicationsScreen> {
               "Today's Doses",
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
-            if (todaysMeds.isNotEmpty)
+            if (todayDoses.isNotEmpty)
               Chip(
-                label: Text('${todaysMeds.length} Due'),
+                label: Text('${todayDoses.length} Due'),
                 backgroundColor: TColors.info.withOpacity(0.1),
                 labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(color: TColors.info),
               ),
@@ -112,7 +113,7 @@ class _PatientMedicationsScreenState extends State<PatientMedicationsScreen> {
         ),
         const SizedBox(height: TSizes.md),
 
-        if (todaysMeds.isEmpty)
+        if (todayDoses.isEmpty)
           TContainer(
             padding: const EdgeInsets.all(TSizes.md),
             backgroundColor: TColors.success.withOpacity(0.1),
@@ -126,52 +127,106 @@ class _PatientMedicationsScreenState extends State<PatientMedicationsScreen> {
           ),
 
         // List of Doses
-        if (todaysMeds.isNotEmpty)
+        if (todayDoses.isNotEmpty)
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: todaysMeds.length,
+            itemCount: todayDoses.length,
             itemBuilder: (_, index) {
-              final medication = todaysMeds[index];
-              return _buildDismissibleMedicationTile(medication, controller, isDark);
+              final dose = todayDoses[index];
+              return _buildDoseTile(dose, controller, isDark);
             },
           ),
       ],
     );
   }
 
-  /// Builds a single, dismissible medication tile for the 'Today's Medications' list.
-  Widget _buildDismissibleMedicationTile(Medication medication, PatientMedicationsController controller, bool isDark) {
-    // Using a composite key for Dismissible stability
-    final Key key = Key(medication.name + medication.timings.join());
-
+  Widget _buildDoseTile(MedicationDoseModel dose, PatientMedicationsController controller, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: TSizes.sm),
-      child: Dismissible(
-        key: key,
-        direction: DismissDirection.startToEnd,
-        background: TContainer(
-          radius: TSizes.cardRadiusLg,
-          backgroundColor: TColors.success,
-          child: const Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: EdgeInsets.only(left: TSizes.defaultSpace),
-              child: Row(
+      child: TContainer(
+        padding: const EdgeInsets.all(TSizes.sm),
+        backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
+        radius: TSizes.cardRadiusLg,
+        showBorder: true,
+        borderColor: _getDoseStatusColor(dose.status).withOpacity(0.4),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 45,
+                  height: 45,
+                  decoration: BoxDecoration(
+                    color: _getDoseStatusColor(dose.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(TSizes.cardRadiusSm),
+                  ),
+                  child: Icon(_getDoseStatusIcon(dose.status), color: _getDoseStatusColor(dose.status)),
+                ),
+                const SizedBox(width: TSizes.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        dose.medicationName,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${dose.dosage} | ${dose.frequency}',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(color: TColors.darkGrey),
+                      ),
+                      if (dose.instructions.isNotEmpty)
+                        Text(
+                          dose.instructions,
+                          style: Theme.of(context).textTheme.labelSmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+                Chip(
+                  label: Text(
+                    _formatDoseTime(dose.scheduledAt),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: TColors.white),
+                  ),
+                  backgroundColor: _getDoseStatusColor(dose.status),
+                ),
+              ],
+            ),
+            if (dose.status == MedicationDoseStatus.pending || dose.status == MedicationDoseStatus.snoozed) ...[
+              const SizedBox(height: TSizes.sm),
+              Row(
                 children: [
-                  Icon(Icons.check, color: TColors.white),
-                  SizedBox(width: TSizes.sm),
-                  Text('Mark as Taken', style: TextStyle(color: TColors.white, fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => controller.snoozeDose(dose.id),
+                      child: const Text('Snooze'),
+                    ),
+                  ),
+                  const SizedBox(width: TSizes.sm),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => controller.skipDose(dose.id),
+                      child: const Text('Skip'),
+                    ),
+                  ),
+                  const SizedBox(width: TSizes.sm),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => controller.markDoseTaken(dose.id),
+                      child: const Text('Taken'),
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ),
+            ],
+          ],
         ),
-        onDismissed: (direction) {
-          //controller.markMedicationTaken(medication);
-          THelperFunctions.showSnackBar('Dose Taken: ${medication.name}',);
-        },
-        child: _buildMedicationTileContent(medication, isDark),
       ),
     );
   }
@@ -378,5 +433,39 @@ class _PatientMedicationsScreenState extends State<PatientMedicationsScreen> {
     }
     // Default or future dose
     return TColors.primary;
+  }
+
+  Color _getDoseStatusColor(MedicationDoseStatus status) {
+    switch (status) {
+      case MedicationDoseStatus.taken:
+        return TColors.success;
+      case MedicationDoseStatus.skipped:
+        return TColors.darkGrey;
+      case MedicationDoseStatus.snoozed:
+        return TColors.warning;
+      case MedicationDoseStatus.missed:
+        return TColors.error;
+      case MedicationDoseStatus.pending:
+        return TColors.primary;
+    }
+  }
+
+  IconData _getDoseStatusIcon(MedicationDoseStatus status) {
+    switch (status) {
+      case MedicationDoseStatus.taken:
+        return Icons.check_circle_outline;
+      case MedicationDoseStatus.skipped:
+        return Icons.block;
+      case MedicationDoseStatus.snoozed:
+        return Icons.snooze;
+      case MedicationDoseStatus.missed:
+        return Icons.warning_amber_rounded;
+      case MedicationDoseStatus.pending:
+        return Icons.alarm;
+    }
+  }
+
+  String _formatDoseTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 }

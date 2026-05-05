@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mindheal/data/repositories/prescription/prescription_repository.dart';
+import 'package:mindheal/data/repositories/reminders/medication_dose_repository.dart';
 import 'package:mindheal/features/personalization/controllers/user_controller.dart';
 import 'package:mindheal/routes/routes.dart';
 import 'package:mindheal/features/prescription/models/prescription_model.dart';
@@ -13,6 +14,7 @@ import 'package:uuid/uuid.dart';
 class PrescriptionReaderController extends GetxController {
   // Dependencies
   final PrescriptionRepository _prescriptionRepo = Get.put(PrescriptionRepository());
+  final MedicationDoseRepository _doseRepo = Get.put(MedicationDoseRepository());
   final UserController _userController = Get.put(UserController());
 
   // Reactive variables
@@ -338,6 +340,7 @@ class PrescriptionReaderController extends GetxController {
 
       // Save to Firebase
       await _prescriptionRepo.savePrescription(prescription);
+      await _doseRepo.createDosesForPrescription(prescription);
 
       // Update local state
       _currentPrescription.value = prescription;
@@ -491,6 +494,7 @@ class PrescriptionReaderController extends GetxController {
 
       // Save to Firebase
       await _prescriptionRepo.updatePrescription(updatedPrescription);
+      await _doseRepo.createDosesForPrescription(updatedPrescription);
 
       _isSaving.value = false;
 

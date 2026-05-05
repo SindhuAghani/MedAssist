@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mindheal/data/repositories/authentication/authentication_repository.dart';
 import 'package:mindheal/data/repositories/prescription/prescription_repository.dart';
+import 'package:mindheal/data/repositories/reminders/medication_dose_repository.dart';
 import 'package:mindheal/data/repositories/user/user_repository.dart';
 import 'package:mindheal/features/personalization/models/user_model.dart';
 import 'package:mindheal/features/prescription/models/prescription_model.dart';
+import 'package:mindheal/data/services/reminders/medication_dose_model.dart';
 import 'package:mindheal/utils/constants/enums.dart';
 import 'package:mindheal/utils/local_storage/storage_utility.dart';
 
@@ -14,19 +18,23 @@ class CaregiverController extends GetxController {
 
   // Repositories
   final PrescriptionRepository _prescriptionRepo = Get.put(PrescriptionRepository());
+  final MedicationDoseRepository _doseRepo = Get.put(MedicationDoseRepository());
 
   // Rx variables
   final RxList<UserModel> _patients = <UserModel>[].obs;
   final RxList<PrescriptionModel> _prescriptions = <PrescriptionModel>[].obs;
+  final RxList<MedicationDoseModel> _todayDoses = <MedicationDoseModel>[].obs;
   final Rx<UserModel?> _selectedPatient = Rx<UserModel?>(null);
   final Rx<PrescriptionModel?> _selectedPrescription = Rx<PrescriptionModel?>(null);
   final RxBool _isLoading = false.obs;
   final RxString _errorMessage = ''.obs;
   final RxInt _activeTabIndex = 0.obs; // 0: Dashboard, 1: Patients, 2: Calendar
+  StreamSubscription<List<MedicationDoseModel>>? _todayDoseSubscription;
 
   // Getters
   List<UserModel> get patients => _patients;
   List<PrescriptionModel> get prescriptions => _prescriptions;
+  List<MedicationDoseModel> get todayDoses => _todayDoses;
   UserModel? get selectedPatient => _selectedPatient.value;
   PrescriptionModel? get selectedPrescription => _selectedPrescription.value;
   bool get isLoading => _isLoading.value;
@@ -64,6 +72,7 @@ class CaregiverController extends GetxController {
         _loadPatients(AuthenticationRepository.instance.getUserID),
         _loadPrescriptions(AuthenticationRepository.instance.getUserID),
       ]);
+      listenToDosesForDay(DateTime.now());
 
     } catch (e) {
       _errorMessage.value = e.toString();
@@ -77,6 +86,18 @@ class CaregiverController extends GetxController {
     } finally {
       _isLoading.value = false;
     }
+  }
+
+  void listenToDosesForDay(DateTime day) {
+    _todayDoseSubscription?.cancel();
+    final caregiverId = AuthenticationRepository.instance.getUserID;
+    if (caregiverId.isEmpty) return;
+
+    _todayDoseSubscription = _doseRepo
+        .streamCaregiverDosesForDay(caregiverId, day)
+        .listen((doses) {
+      _todayDoses.value = doses;
+    });
   }
 
   /// Load patients managed by caregiver
@@ -261,6 +282,31 @@ class CaregiverController extends GetxController {
     );
   }
 
+  Future<void> sendDoseReminderToPatient(MedicationDoseModel dose) async {
+    try {
+      await _doseRepo.sendManualReminderToPatient(
+        dose,
+        AuthenticationRepository.instance.getUserID,
+      );
+
+      Get.snackbar(
+        'Reminder Sent',
+        'Patient has been reminded about ${dose.medicationName}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to send reminder: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   /// Change active tab
   void changeTab(int index) {
     _activeTabIndex.value = index;
@@ -274,5 +320,11 @@ class CaregiverController extends GetxController {
   /// Refresh data
   Future<void> refreshData() async {
     await loadCaregiverData();
+  }
+
+  @override
+  void onClose() {
+    _todayDoseSubscription?.cancel();
+    super.onClose();
   }
 }

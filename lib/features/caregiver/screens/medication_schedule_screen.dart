@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mindheal/data/repositories/authentication/authentication_repository.dart';
+import 'package:mindheal/data/services/reminders/medication_dose_model.dart';
 import 'package:mindheal/features/caregiver/controller/caregiver_controller.dart';
 import 'package:mindheal/features/personalization/models/user_model.dart';
 import 'package:mindheal/routes/routes.dart';
@@ -68,6 +69,7 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                   _selectedDay = selectedDay;
                   _focusedDay = focusedDay;
                 });
+                controller.listenToDosesForDay(selectedDay);
               },
               onPageChanged: (focusedDay) {
                 _focusedDay = focusedDay;
@@ -186,9 +188,9 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
         return const Center(child: CircularProgressIndicator());
       }
 
-      final medications = _getMedicationsForSelectedDay();
+      final doses = _getDosesForSelectedDay();
 
-      if (medications.isEmpty) {
+      if (doses.isEmpty) {
         return const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -211,18 +213,137 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
 
       return ListView.builder(
         padding: const EdgeInsets.all(TSizes.defaultSpace),
-        itemCount: medications.length,
+        itemCount: doses.length,
         itemBuilder: (context, index) {
-          final medication = medications[index];
+          final dose = doses[index];
           final patient = controller.patients.firstWhereOrNull(
-                  (p) => p.id == medication.id
+                  (p) => p.id == dose.patientId
           );
-          final prescription = controller.prescriptions.firstWhereOrNull((p) => p.caregiverId == AuthenticationRepository.instance.getUserID);
 
-          return _buildMedicationCard(prescription!.id,medication, patient);
+          return _buildDoseCard(dose, patient);
         },
       );
     });
+  }
+
+  Widget _buildDoseCard(MedicationDoseModel dose, UserModel? patient) {
+    final isTaken = dose.status == MedicationDoseStatus.taken;
+    final isMissed = dose.status == MedicationDoseStatus.missed;
+    final canRemind = dose.status == MedicationDoseStatus.pending ||
+        dose.status == MedicationDoseStatus.snoozed ||
+        dose.status == MedicationDoseStatus.missed;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: TSizes.sm),
+      elevation: 3,
+      color: isTaken ? Colors.green.shade50 : isMissed ? Colors.red.shade50 : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(TSizes.cardRadiusMd),
+        side: BorderSide(
+          color: isTaken ? Colors.green.shade200 : isMissed ? Colors.red.shade200 : Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(TSizes.defaultSpace),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: TColors.primary.withOpacity(0.1),
+                      child: Icon(Icons.person, color: TColors.primary, size: 20),
+                    ),
+                    const SizedBox(width: TSizes.sm),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(patient?.fullName ?? 'Patient', style: Get.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                        Text(patient?.formattedPhoneNo ?? '', style: Get.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                      ],
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: TSizes.sm, vertical: TSizes.xs),
+                  decoration: BoxDecoration(
+                    color: _getDoseStatusColor(dose.status),
+                    borderRadius: BorderRadius.circular(TSizes.cardRadiusSm),
+                  ),
+                  child: Text(
+                    dose.status.name.toUpperCase(),
+                    style: Get.textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: TSizes.md),
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(TSizes.cardRadiusSm),
+                  ),
+                  child: const Icon(Icons.medical_services, color: Colors.blue, size: 20),
+                ),
+                const SizedBox(width: TSizes.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(dose.medicationName, style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('${dose.dosage} | ${dose.frequency}', style: Get.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    ],
+                  ),
+                ),
+                Chip(
+                  label: Text(_formatDoseTime(dose.scheduledAt)),
+                  backgroundColor: _getTimeChipColor(_formatDoseTime(dose.scheduledAt)),
+                ),
+              ],
+            ),
+            if (dose.instructions.isNotEmpty) ...[
+              const SizedBox(height: TSizes.sm),
+              Text('Instructions:', style: Get.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.grey[700])),
+              Text(dose.instructions, style: Get.textTheme.bodySmall),
+            ],
+            const SizedBox(height: TSizes.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _viewPrescriptionDetails(dose.prescriptionId),
+                    icon: const Icon(Icons.description, size: 16),
+                    label: const Text('View Prescription'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: TColors.primary,
+                      side: BorderSide(color: TColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: TSizes.sm),
+                if (canRemind)
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => controller.sendDoseReminderToPatient(dose),
+                      icon: const Icon(Icons.notifications_active, size: 16),
+                      label: const Text('Send Reminder'),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildMedicationCard(String prescriptionId,Medication medication, UserModel? patient) {
@@ -498,48 +619,24 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     return 'Completed';
   }
 
-  List<Medication> _getMedicationsForSelectedDay() {
+  List<MedicationDoseModel> _getDosesForSelectedDay() {
     if (_selectedDay == null) return [];
 
-    List<Medication> allMedications = [];
-
-    // Get medications from all prescriptions
-    for (var prescription in controller.prescriptions) {
-      for (var medication in prescription.medications) {
-        // Check if medication is active on selected day
-        if (medication.startDate.isBefore(_selectedDay!) &&
-            (medication.endDate == null || medication.endDate!.isAfter(_selectedDay!))) {
-
-          // Add patient ID to medication for filtering
-          final medWithPatientId = medication; // Medication already has patientId in real implementation
-
-          // Apply filters
-          if (_selectedPatientFilter != 'All' &&
-              prescription.patientId != _selectedPatientFilter) {
-            continue;
-          }
-
-          if (_selectedTimeFilter != 'All') {
-            final timeFilter = _selectedTimeFilter.toLowerCase();
-            final matchesTime = medication.timings.any((time) {
-              return _categorizeTime(time) == timeFilter;
-            });
-            if (!matchesTime) continue;
-          }
-
-          allMedications.add(medication);
-        }
-      }
-    }
+    final selectedStart = DateTime(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
+    final selectedEnd = selectedStart.add(const Duration(days: 1));
+    final allDoses = controller.todayDoses.where((dose) {
+      if (dose.scheduledAt.isBefore(selectedStart) || !dose.scheduledAt.isBefore(selectedEnd)) return false;
+      if (_selectedPatientFilter != 'All' && dose.patientId != _selectedPatientFilter) return false;
+      if (_selectedTimeFilter != 'All' && _categorizeTime(_formatDoseTime(dose.scheduledAt)) != _selectedTimeFilter.toLowerCase()) return false;
+      return true;
+    }).toList();
 
     // Sort by time
-    allMedications.sort((a, b) {
-      final aTime = a.timings.isNotEmpty ? a.timings.first : '23:59';
-      final bTime = b.timings.isNotEmpty ? b.timings.first : '23:59';
-      return aTime.compareTo(bTime);
+    allDoses.sort((a, b) {
+      return a.scheduledAt.compareTo(b.scheduledAt);
     });
 
-    return allMedications;
+    return allDoses;
   }
 
   String _categorizeTime(String time) {
@@ -611,5 +708,24 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
   void _viewPrescriptionDetails(String prescription) {
     // Navigate to prescription details
     Get.toNamed(TRoutes.prescriptionDetails, arguments: prescription);
+  }
+
+  Color _getDoseStatusColor(MedicationDoseStatus status) {
+    switch (status) {
+      case MedicationDoseStatus.taken:
+        return Colors.green;
+      case MedicationDoseStatus.skipped:
+        return Colors.grey;
+      case MedicationDoseStatus.snoozed:
+        return Colors.orange;
+      case MedicationDoseStatus.missed:
+        return Colors.red;
+      case MedicationDoseStatus.pending:
+        return TColors.primary;
+    }
+  }
+
+  String _formatDoseTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 }
