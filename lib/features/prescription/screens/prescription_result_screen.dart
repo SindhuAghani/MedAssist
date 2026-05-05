@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:mindheal/common/widgets/appbar/appbar.dart';
 import 'package:mindheal/features/prescription/controller/prescription_reader_controller.dart';
+import 'package:mindheal/utils/helpers/helper_functions.dart';
 
 import '../../../common/widgets/custom_shapes/containers/t_container.dart';
 import '../../../utils/constants/colors.dart';
@@ -61,23 +63,19 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    final isDark = THelperFunctions.isDarkMode(context);
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_left, color: Colors.black),
-          onPressed: () => Get.back(),
-        ),
+      appBar: TAppBar(
+        showBackArrow: true,
         title: Text(
           'Prescription Review',
           style: Theme.of(context).textTheme.headlineSmall!.copyWith(
             fontWeight: FontWeight.bold,
-            color: Colors.black,
           ),
         ),
-        centerTitle: true,
+        showSkipButton: false,
+        showActions: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(TSizes.defaultSpace),
@@ -89,27 +87,27 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
             const SizedBox(height: TSizes.spaceBtwItems),
 
             // Prescription Info Form
-            _buildPrescriptionForm(),
+            _buildPrescriptionForm(isDark),
             const SizedBox(height: TSizes.spaceBtwItems),
 
             // Medications List
-            _buildMedicationsList(),
+            _buildMedicationsList(isDark),
             const SizedBox(height: TSizes.spaceBtwItems),
 
             // Extracted Text
-            _buildExtractedTextSection(),
+            _buildExtractedTextSection(isDark),
             const SizedBox(height: TSizes.spaceBtwItems),
 
             // Simplified Text
-            _buildSimplifiedTextSection(),
+            _buildSimplifiedTextSection(isDark),
             const SizedBox(height: TSizes.spaceBtwItems),
 
             // Urdu Translation
-            _buildTranslatedTextSection(),
+            _buildTranslatedTextSection(isDark),
             const SizedBox(height: TSizes.spaceBtwItems),
 
             // Additional Notes
-            _buildNotesSection(),
+            _buildNotesSection(isDark),
           ],
         ),
       ),
@@ -144,9 +142,9 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
     );
   }
 
-  Widget _buildPrescriptionForm() {
+  Widget _buildPrescriptionForm(bool isDark) {
     return TContainer(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -324,9 +322,9 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
   }
 
 
-  Widget _buildExtractedTextSection() {
+  Widget _buildExtractedTextSection(bool isDark) {
     return TContainer(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -353,9 +351,10 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
     );
   }
 
-  Widget _buildSimplifiedTextSection() {
+  Widget _buildSimplifiedTextSection(bool isDark) {
     return TContainer(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
+      //backgroundColor: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -405,14 +404,15 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
     );
   }
 
-  Widget _buildTranslatedTextSection() {
+  Widget _buildTranslatedTextSection(bool isDark) {
     return Obx(() {
       if (_controller.translatedText.trim().isEmpty) {
         return const SizedBox.shrink();
       }
 
       return TContainer(
-        backgroundColor: Colors.white,
+      //  backgroundColor: Colors.white,
+        backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -444,9 +444,9 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
     });
   }
 
-  Widget _buildNotesSection() {
+  Widget _buildNotesSection(bool isDark) {
     return TContainer(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       padding: const EdgeInsets.all(TSizes.defaultSpace),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,9 +467,9 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
     );
   }
 
-  Widget _buildMedicationsList() {
+  Widget _buildMedicationsList(bool isDark) {
     return TContainer(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -495,7 +495,7 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
             separatorBuilder: (context, index) => const SizedBox(height: TSizes.spaceBtwItems),
             itemBuilder: (context, index) {
               final medication = _controller.extractedMedications[index];
-              return _buildMedicationCard(medication, index);
+              return _buildMedicationCard(medication, index, isDark);
             },
           )),
         ],
@@ -503,12 +503,13 @@ class _PrescriptionResultsScreenState extends State<PrescriptionResultsScreen> {
     );
   }
 
-  Widget _buildMedicationCard(Medication medication, int index) {
+  Widget _buildMedicationCard(Medication medication, int index, isDark) {
     // Determine which list to use (map value or default to controller's value)
     final timings = _medicationTimings[medication.id] ?? medication.timings;
 
     return TContainer(
-      backgroundColor: TColors.lightContainer,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
+      //backgroundColor: TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

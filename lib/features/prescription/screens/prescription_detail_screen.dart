@@ -8,6 +8,7 @@ import 'package:mindheal/routes/routes.dart';
 import 'package:mindheal/utils/constants/colors.dart';
 import 'package:mindheal/utils/constants/enums.dart';
 import 'package:mindheal/utils/constants/sizes.dart';
+import 'package:mindheal/utils/helpers/helper_functions.dart';
 
 import '../../../common/widgets/custom_shapes/containers/t_container.dart';
 
@@ -19,6 +20,7 @@ class PrescriptionDetailsScreen extends StatelessWidget {
     // Initialize the controller
     final controller = Get.put(PrescriptionDetailsController());
     final prescriptionId = Get.arguments as String?;
+    final isDark = THelperFunctions.isDarkMode(context);
 
     if (prescriptionId != null) {
       controller.loadPrescriptionDetails(prescriptionId);
@@ -82,11 +84,11 @@ class PrescriptionDetailsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Prescription Header (Doctor, Status, Validity)
-              _buildPrescriptionHeader(controller),
+              _buildPrescriptionHeader(controller,isDark),
               const SizedBox(height: TSizes.spaceBtwSections),
 
               // 2. Medications List
-              _buildMedicationsSection(controller),
+              _buildMedicationsSection(controller,isDark),
               const SizedBox(height: TSizes.spaceBtwSections),
 
               // 3. Simplified Explanation (High Priority)
@@ -107,7 +109,7 @@ class PrescriptionDetailsScreen extends StatelessWidget {
       // Bottom Bar for Quick Actions
       bottomNavigationBar: Obx(() {
         if (controller.prescription == null) return const SizedBox();
-        return _buildBottomActions(controller);
+        return _buildBottomActions(controller, isDark);
       }),
     );
   }
@@ -117,12 +119,12 @@ class PrescriptionDetailsScreen extends StatelessWidget {
   /// -------------------------------------------------------------------
 
   /// Builds the main header showing Doctor, Status, and Validity timeline.
-  Widget _buildPrescriptionHeader(PrescriptionDetailsController controller) {
+  Widget _buildPrescriptionHeader(PrescriptionDetailsController controller,isDark) {
     final prescription = controller.prescription!;
 
     return TContainer(
       padding: const EdgeInsets.all(TSizes.md),
-      backgroundColor: TColors.lightContainer,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       borderRadius: BorderRadius.circular(TSizes.cardRadiusLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,7 +267,7 @@ class PrescriptionDetailsScreen extends StatelessWidget {
   }
 
   /// Builds the section for the list of medications.
-  Widget _buildMedicationsSection(PrescriptionDetailsController controller) {
+  Widget _buildMedicationsSection(PrescriptionDetailsController controller,bool isDark) {
     final prescription = controller.prescription!;
 
     return Column(
@@ -284,7 +286,7 @@ class PrescriptionDetailsScreen extends StatelessWidget {
             const Spacer(),
             Chip(
               label: Text('${prescription.medications.length} meds'),
-              backgroundColor: TColors.softGrey,
+              backgroundColor: isDark ? TColors.darkerGrey :  TColors.softGrey,
             ),
           ],
         ),
@@ -662,9 +664,10 @@ class PrescriptionDetailsScreen extends StatelessWidget {
   }
 
   /// Builds the bottom fixed action bar.
-  Widget _buildBottomActions(PrescriptionDetailsController controller) {
+  Widget _buildBottomActions(PrescriptionDetailsController controller,bool isDark) {
     final prescription = controller.prescription!;
     return TContainer(
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       padding: const EdgeInsets.symmetric(
         horizontal: TSizes.defaultSpace,
         vertical: TSizes.md,
@@ -672,18 +675,18 @@ class PrescriptionDetailsScreen extends StatelessWidget {
       showShadow: true,
       child: Row(
         children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => _setReminders(prescription),
-              icon: const Icon(Icons.alarm),
-              label: const Text('Set Reminders'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: TSizes.md),
-                foregroundColor: TColors.darkGrey,
-              ),
-            ),
-          ),
-          const SizedBox(width: TSizes.sm),
+          // Expanded(
+          //   child: OutlinedButton.icon(
+          //     onPressed: () => _setReminders(prescription),
+          //     icon: const Icon(Icons.alarm),
+          //     label: const Text('Set Reminders'),
+          //     style: OutlinedButton.styleFrom(
+          //       padding: const EdgeInsets.symmetric(vertical: TSizes.md),
+          //       foregroundColor: TColors.darkGrey,
+          //     ),
+          //   ),
+          // ),
+          // const SizedBox(width: TSizes.sm),
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () => _viewMedicationSchedule(controller),

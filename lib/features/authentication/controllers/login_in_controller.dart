@@ -10,8 +10,6 @@ import '../../../utils/popups/full_screen_loader.dart';
 import '../../../utils/popups/loaders.dart';
 import '../../personalization/controllers/user_controller.dart';
 
-
-
 class LoginController extends GetxController {
   static LoginController get instance => Get.find();
 
@@ -55,8 +53,7 @@ class LoginController extends GetxController {
         localStorage.write('REMEMBER_ME_PASSWORD', password.text.trim());
       }
 
-      final userCredentials = await AuthenticationRepository.instance
-          .loginWithEmailAndPassword(email.text.trim(), password.text.trim());
+      final userCredentials = await AuthenticationRepository.instance.loginWithEmailAndPassword(email.text.trim(), password.text.trim());
 
       failedAttempts = 0; // Reset on success ✅
 
@@ -66,7 +63,6 @@ class LoginController extends GetxController {
 
       TFullScreenLoader.stopLoading();
       await AuthenticationRepository.instance.screenRedirect(userCredentials.user);
-
     } catch (e) {
       failedAttempts++; // Track failed login attempts
 
@@ -80,12 +76,8 @@ class LoginController extends GetxController {
           message: "Reset link sent to your email. Try again after resetting your password.",
         );
       } else {
-        TLoaders.errorSnackBar(
-          title: 'Login Failed',
-          message: e.toString(),
-        );
+        TLoaders.errorSnackBar(title: 'Login Failed', message: e.toString());
       }
     }
   }
 }
-

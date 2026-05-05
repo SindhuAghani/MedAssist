@@ -1,12 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mindheal/common/widgets/appbar/appbar.dart';
 import 'package:mindheal/common/widgets/custom_shapes/containers/t_container.dart';
 import 'package:mindheal/features/test_reports/controller/test_report_analytics_controller.dart';
 import 'package:mindheal/features/test_reports/models/test_metric_model.dart';
 import 'package:mindheal/utils/constants/colors.dart';
 import 'package:mindheal/utils/constants/enums.dart';
 import 'package:mindheal/utils/constants/sizes.dart';
+import 'package:mindheal/utils/helpers/helper_functions.dart';
 
 class TestReportAnalyticsScreen extends StatelessWidget {
   const TestReportAnalyticsScreen({super.key});
@@ -14,23 +16,22 @@ class TestReportAnalyticsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TestReportAnalyticsController>();
+    final isDark = THelperFunctions.isDarkMode(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Test Report Analytics')),
+      appBar: TAppBar(title: const Text('Test Report Analytics'), showSkipButton: false, showActions: false, showBackArrow: true),
       body: Obx(() {
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
 
         if (controller.errorMessage.value.isNotEmpty) {
-          return _buildMessageState(
-            title: 'Unable to Load Analytics',
-            subtitle: controller.errorMessage.value,
-          );
+          return _buildMessageState(isDark: isDark, title: 'Unable to Load Analytics', subtitle: controller.errorMessage.value);
         }
 
         if (controller.availablePatients.isEmpty) {
           return _buildMessageState(
+            isDark: isDark,
             title: 'No Patients Available',
             subtitle: 'Analytics will appear here when at least one patient has structured test reports.',
           );
@@ -41,19 +42,20 @@ class TestReportAnalyticsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFilters(controller),
+              _buildFilters(controller, isDark),
               const SizedBox(height: TSizes.spaceBtwItems),
               if (controller.selectedMetricTrend.isEmpty)
                 _buildMessageState(
+                  isDark: isDark,
                   title: 'No Trend Data Yet',
                   subtitle: 'Save at least one structured report for the selected patient and report type to generate charts.',
                 )
               else ...[
-                _buildSummary(controller),
+                _buildSummary(controller, isDark),
                 const SizedBox(height: TSizes.spaceBtwItems),
-                _buildChart(controller),
+                _buildChart(controller, isDark),
                 const SizedBox(height: TSizes.spaceBtwItems),
-                _buildTrendTable(controller),
+                _buildTrendTable(controller, isDark),
               ],
             ],
           ),
@@ -62,25 +64,19 @@ class TestReportAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFilters(TestReportAnalyticsController controller) {
+  Widget _buildFilters(TestReportAnalyticsController controller, bool isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Trend Filters',
-            style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Trend Filters', style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: TSizes.md),
           if (controller.availablePatients.length > 1) ...[
             DropdownButtonFormField<String>(
               initialValue: controller.selectedPatientId.value,
-              decoration: const InputDecoration(
-                labelText: 'Patient',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person_search),
-              ),
+              decoration: const InputDecoration(labelText: 'Patient', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person_search)),
               items: controller.availablePatients
                   .map(
                     (patient) => DropdownMenuItem<String>(
@@ -95,36 +91,18 @@ class TestReportAnalyticsScreen extends StatelessWidget {
           ],
           DropdownButtonFormField<TestReportType>(
             initialValue: controller.selectedReportType.value,
-            decoration: const InputDecoration(
-              labelText: 'Report Type',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.science),
-            ),
+            decoration: const InputDecoration(labelText: 'Report Type', border: OutlineInputBorder(), prefixIcon: Icon(Icons.science)),
             items: TestReportType.values
-                .map(
-                  (type) => DropdownMenuItem<TestReportType>(
-                    value: type,
-                    child: Text(_reportTypeLabel(type)),
-                  ),
-                )
+                .map((type) => DropdownMenuItem<TestReportType>(value: type, child: Text(_reportTypeLabel(type))))
                 .toList(),
             onChanged: controller.setReportType,
           ),
           const SizedBox(height: TSizes.spaceBtwInputFields),
           DropdownButtonFormField<String>(
             initialValue: controller.selectedMetricKey.value.isEmpty ? null : controller.selectedMetricKey.value,
-            decoration: const InputDecoration(
-              labelText: 'Metric',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.show_chart),
-            ),
+            decoration: const InputDecoration(labelText: 'Metric', border: OutlineInputBorder(), prefixIcon: Icon(Icons.show_chart)),
             items: controller.availableMetrics
-                .map(
-                  (metric) => DropdownMenuItem<String>(
-                    value: metric.metricKey,
-                    child: Text(metric.metricLabel),
-                  ),
-                )
+                .map((metric) => DropdownMenuItem<String>(value: metric.metricKey, child: Text(metric.metricLabel)))
                 .toList(),
             onChanged: controller.setMetricKey,
           ),
@@ -133,44 +111,30 @@ class TestReportAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummary(TestReportAnalyticsController controller) {
+  Widget _buildSummary(TestReportAnalyticsController controller, bool isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            controller.selectedMetricLabel,
-            style: Get.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text(controller.selectedMetricLabel, style: Get.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: TSizes.xs),
-          Text(
-            'Patient: ${controller.selectedPatientName}',
-            style: Get.textTheme.bodyMedium,
-          ),
+          Text('Patient: ${controller.selectedPatientName}', style: Get.textTheme.bodyMedium),
           const SizedBox(height: TSizes.xs),
-          Text(
-            'Reports analyzed: ${controller.selectedMetricTrend.length}',
-            style: Get.textTheme.bodyMedium,
-          ),
+          Text('Reports analyzed: ${controller.selectedMetricTrend.length}', style: Get.textTheme.bodyMedium),
           if (controller.selectedMetricUnit.isNotEmpty) ...[
             const SizedBox(height: TSizes.xs),
-            Text(
-              'Unit: ${controller.selectedMetricUnit}',
-              style: Get.textTheme.bodyMedium,
-            ),
+            Text('Unit: ${controller.selectedMetricUnit}', style: Get.textTheme.bodyMedium),
           ],
           const SizedBox(height: TSizes.md),
-          Text(
-            controller.trendSummary,
-            style: Get.textTheme.bodyMedium?.copyWith(color: TColors.textSecondary),
-          ),
+          Text(controller.trendSummary, style: Get.textTheme.bodyMedium?.copyWith(color: TColors.textSecondary)),
         ],
       ),
     );
   }
 
-  Widget _buildChart(TestReportAnalyticsController controller) {
+  Widget _buildChart(TestReportAnalyticsController controller, isDark) {
     final trend = controller.selectedMetricTrend;
     final spots = trend.asMap().entries.map((entry) {
       return FlSpot(entry.key.toDouble(), entry.value.value);
@@ -182,13 +146,11 @@ class TestReportAnalyticsScreen extends StatelessWidget {
 
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Trend Chart',
-            style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Trend Chart', style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: TSizes.md),
           SizedBox(
             height: 260,
@@ -198,15 +160,8 @@ class TestReportAnalyticsScreen extends StatelessWidget {
                 maxX: trend.length == 1 ? 1 : (trend.length - 1).toDouble(),
                 minY: minY - yPadding,
                 maxY: maxY + yPadding,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: yPadding <= 0 ? 1 : yPadding,
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
+                gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: yPadding <= 0 ? 1 : yPadding),
+                borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.shade300)),
                 titlesData: FlTitlesData(
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -221,10 +176,7 @@ class TestReportAnalyticsScreen extends StatelessWidget {
                         final date = trend[index].reportDate;
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            '${date.day}/${date.month}',
-                            style: const TextStyle(fontSize: 11),
-                          ),
+                          child: Text('${date.day}/${date.month}', style: const TextStyle(fontSize: 11)),
                         );
                       },
                     ),
@@ -234,10 +186,7 @@ class TestReportAnalyticsScreen extends StatelessWidget {
                       showTitles: true,
                       reservedSize: 42,
                       getTitlesWidget: (value, meta) {
-                        return Text(
-                          value.toStringAsFixed(1),
-                          style: const TextStyle(fontSize: 11),
-                        );
+                        return Text(value.toStringAsFixed(1), style: const TextStyle(fontSize: 11));
                       },
                     ),
                   ),
@@ -251,17 +200,10 @@ class TestReportAnalyticsScreen extends StatelessWidget {
                     isStrokeCapRound: true,
                     dotData: FlDotData(
                       show: true,
-                      getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                        radius: 4,
-                        color: TColors.primary,
-                        strokeWidth: 2,
-                        strokeColor: Colors.white,
-                      ),
+                      getDotPainter: (spot, percent, barData, index) =>
+                          FlDotCirclePainter(radius: 4, color: TColors.primary, strokeWidth: 2, strokeColor: Colors.white),
                     ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: TColors.primary.withValues(alpha: 0.12),
-                    ),
+                    belowBarData: BarAreaData(show: true, color: TColors.primary.withValues(alpha: 0.12)),
                   ),
                 ],
               ),
@@ -272,16 +214,14 @@ class TestReportAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTrendTable(TestReportAnalyticsController controller) {
+  Widget _buildTrendTable(TestReportAnalyticsController controller, isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Trend Points',
-            style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Trend Points', style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: TSizes.md),
           ...controller.selectedMetricTrend.map(
             (point) => Padding(
@@ -298,10 +238,7 @@ class TestReportAnalyticsScreen extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text(
-            '${point.reportDate.day}/${point.reportDate.month}/${point.reportDate.year}',
-            style: Get.textTheme.bodyMedium,
-          ),
+          child: Text('${point.reportDate.day}/${point.reportDate.month}/${point.reportDate.year}', style: Get.textTheme.bodyMedium),
         ),
         Text(
           '${point.value.toStringAsFixed(2)}${unit.isEmpty ? '' : ' $unit'}',
@@ -311,15 +248,13 @@ class TestReportAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMessageState({
-    required String title,
-    required String subtitle,
-  }) {
+  Widget _buildMessageState({required String title, required String subtitle, required bool isDark}) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: TContainer(
           showShadow: true,
+          backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

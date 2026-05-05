@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mindheal/app.dart';
 import 'package:mindheal/features/authentication/screens/login/login.dart';
+import 'package:mindheal/features/personalization/controllers/user_controller.dart';
+import 'package:mindheal/features/personalization/models/user_model.dart';
 import 'package:mindheal/utils/constants/enums.dart';
 
 import '../../../features/Home/home_page.dart';
@@ -92,7 +94,7 @@ class AuthenticationRepository extends GetxController {
         }
 
         // Update createdAt to now (extend password validity)
-        await FirebaseFirestore.instance.collection('users').doc(uid).set(
+        await FirebaseFirestore.instance.collection('Users').doc(uid).set(
           {'createdAt': now},
           SetOptions(merge: true),
         );
@@ -137,7 +139,7 @@ class AuthenticationRepository extends GetxController {
       failedAttempts = 0;
 
       // Update createdAt (extend validity)
-      await FirebaseFirestore.instance.collection('users').doc(uid).set(
+      await FirebaseFirestore.instance.collection('Users').doc(uid).set(
         {'createdAt': DateTime.now()},
         SetOptions(merge: true),
       );
@@ -148,7 +150,7 @@ class AuthenticationRepository extends GetxController {
 
       // Check if user exists in Firestore
       final snapshot = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('Users')
           .where('email', isEqualTo: email)
           .limit(1)
           .get();
@@ -267,7 +269,8 @@ class AuthenticationRepository extends GetxController {
   Future<void> logout() async {
     try {
       await FirebaseAuth.instance.signOut();
-      Get.offAll(() => const LoginScreen());
+      UserController.instance.user.value = UserModel.empty();
+      screenRedirect(null);
     } on FirebaseAuthException catch (e) {
       throw TFirebaseAuthException(e.code).message;
     } on FirebaseException catch (e) {

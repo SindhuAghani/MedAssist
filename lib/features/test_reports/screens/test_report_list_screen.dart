@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mindheal/common/widgets/appbar/appbar.dart';
 import 'package:mindheal/common/widgets/custom_shapes/containers/t_container.dart';
 import 'package:mindheal/features/test_reports/controller/test_report_list_controller.dart';
 import 'package:mindheal/features/test_reports/models/test_report_model.dart';
@@ -7,6 +8,7 @@ import 'package:mindheal/routes/routes.dart';
 import 'package:mindheal/utils/constants/colors.dart';
 import 'package:mindheal/utils/constants/enums.dart';
 import 'package:mindheal/utils/constants/sizes.dart';
+import 'package:mindheal/utils/helpers/helper_functions.dart';
 
 class TestReportListScreen extends StatelessWidget {
   const TestReportListScreen({super.key});
@@ -14,9 +16,9 @@ class TestReportListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TestReportListController>();
-
+    final isDark = THelperFunctions.isDarkMode(context);
     return Scaffold(
-      appBar: AppBar(
+      appBar: TAppBar(
         title: Obx(() => Text(controller.screenTitle)),
         actions: [
           IconButton(
@@ -34,6 +36,9 @@ class TestReportListScreen extends StatelessWidget {
                 : const SizedBox.shrink(),
           ),
         ],
+        showSkipButton: false,
+        showActions: true,
+        showBackArrow: true,
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -45,6 +50,7 @@ class TestReportListScreen extends StatelessWidget {
             title: 'Unable to Load Reports',
             subtitle: controller.errorMessage.value,
             actionLabel: 'Retry',
+            isDark: isDark,
             onPressed: controller.refreshReports,
           );
         }
@@ -54,11 +60,12 @@ class TestReportListScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(TSizes.defaultSpace),
             children: [
-              _buildFilters(controller),
+              _buildFilters(controller,isDark),
               const SizedBox(height: TSizes.spaceBtwItems),
               if (controller.filteredReports.isEmpty)
                 _buildMessageState(
                   title: 'No Test Reports Yet',
+                  isDark: isDark,
                   subtitle: controller.currentUserRole == AppRole.doctor
                       ? 'Create the first structured report to start building charts and patient history.'
                       : 'No reports are available for this account yet.',
@@ -71,7 +78,7 @@ class TestReportListScreen extends StatelessWidget {
                 ...controller.filteredReports.map(
                   (report) => Padding(
                     padding: const EdgeInsets.only(bottom: TSizes.md),
-                    child: _buildReportCard(controller, report),
+                    child: _buildReportCard(controller, report, isDark),
                   ),
                 ),
             ],
@@ -81,9 +88,10 @@ class TestReportListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFilters(TestReportListController controller) {
+  Widget _buildFilters(TestReportListController controller , bool isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -127,13 +135,14 @@ class TestReportListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReportCard(TestReportListController controller, TestReportModel report) {
+  Widget _buildReportCard(TestReportListController controller, TestReportModel report,bool isDark) {
     final abnormalCount = report.abnormalMetrics.length;
     final patientName = controller.getPatientName(report.patientId);
     final statusColor = report.status == TestReportStatus.finalReport ? Colors.green : Colors.orange;
 
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       onTap: () => Get.toNamed(TRoutes.testReportDetail, arguments: report.id),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,32 +239,31 @@ class TestReportListScreen extends StatelessWidget {
     required String subtitle,
     String? actionLabel,
     VoidCallback? onPressed,
+    required bool isDark,
   }) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: TContainer(
-          showShadow: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: Get.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: TSizes.sm),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: Get.textTheme.bodyMedium?.copyWith(color: TColors.textSecondary),
-              ),
-              if (actionLabel != null && onPressed != null) ...[
-                const SizedBox(height: TSizes.md),
-                ElevatedButton(onPressed: onPressed, child: Text(actionLabel)),
-              ],
+      child: TContainer(
+        backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
+        showShadow: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: Get.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: TSizes.sm),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: Get.textTheme.bodyMedium?.copyWith(color: TColors.textSecondary),
+            ),
+            if (actionLabel != null && onPressed != null) ...[
+              const SizedBox(height: TSizes.md),
+              SizedBox(width: double.infinity,child: ElevatedButton(onPressed: onPressed, child: Text(actionLabel))),
             ],
-          ),
+          ],
         ),
       ),
     );

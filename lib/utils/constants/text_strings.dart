@@ -7,18 +7,24 @@ class TTexts {
   static const String skip = "Skip";
   static const String done = "Done";
   static const String submit = "Submit";
-  static const String appName = "Mind Heal";
+  static const String appName = "Med AssitAi";
   static const String tContinue = "Continue";
 
 
-  // -- OnBoarding Texts
-  static const String onBoardingTitle1 = "Understand Your Mind";
-  static const String onBoardingTitle2 = "Choose Your Healing Path";
-  static const String onBoardingTitle3 = "Track Progress & Heal Better";
+  // -- OnBoarding Title Texts
+  static const String onBoardingTitle1 = "Your prescriptions, understood.";
+  static const String onBoardingTitle2 = "Doctors, caregivers, patients — connected.";
+  static const String onBoardingTitle3 = "Never miss a dose again.";
 
-  static const String onBoardingSubTitle1 = "Begin your journey to self-awareness — explore issues like stress, anxiety, and more.";
-  static const String onBoardingSubTitle2 = "Select expert-backed practices or book a consultation with certified professionals.";
-  static const String onBoardingSubTitle3 = "Monitor your mental health growth with smart reminders and insightful tracking tools.";
+// -- OnBoarding Subtitle Texts
+  static const String onBoardingSubTitle1 = "Scan any prescription and let MindHeal read, organise, and explain your medicines — clearly, in one place.";
+  static const String onBoardingSubTitle2 = "Book consultations with verified psychiatrists or let a trusted caregiver stay in the loop — all within one app.";
+  static const String onBoardingSubTitle3 = "Smart reminders notify you and your caregiver at the right time, every time — so healing stays on track.";
+
+// -- Auth Texts
+  static const String loginSubTitle = "Your prescriptions. Your care team. Your reminders — all in one safe place.";
+  static const String yourAccountCreatedSubTitle = "You're all set. Your MindHeal account is ready — start by scanning your first prescription or inviting a caregiver.";
+  static const String confirmEmailSubTitle = "Almost there! Check your inbox and verify your email to activate your account and start managing your care.";
 
 
 
@@ -47,17 +53,14 @@ class TTexts {
 
   // -- Authentication Headings
   static const String loginTitle = "Welcome back,";
-  static const String loginSubTitle = "Empower Your Mind — Personalized Care, Anytime, Anywhere.";
   static const String signupTitle = "Let’s create your account";
   static const String forgetPasswordTitle = "Forget password";
   static const String forgetPasswordSubTitle = "Don’t worry sometimes people can forget too, enter your email and we will send you a password reset link.";
   static const String changeYourPasswordTitle = "Password Reset Email Sent";
   static const String changeYourPasswordSubTitle = "Your Account Security is Our Priority! We've Sent You a Secure Link to Safely Change Your Password and Keep Your Account Protected.";
   static const String confirmEmail = "Verify your email address!";
-  static const String yourAccountCreatedSubTitle = "Welcome to Mindheal Hub — Your Safe Space for Healing and Growth is Ready!";
   static const String emailNotReceivedMessage = "Didn’t get the email? Check your junk/spam or resend it.";
   static const String yourAccountCreatedTitle = "Your account successfully created!";
-  static const String confirmEmailSubTitle = "You're Almost There! Verify Your Email to Begin Your Personalized Mental Wellness Journey.";
 
 
   // -- Home

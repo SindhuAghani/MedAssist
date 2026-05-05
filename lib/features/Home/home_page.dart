@@ -4,12 +4,13 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:mindheal/features/personalization/controllers/user_controller.dart';
 import 'package:mindheal/routes/routes.dart';
+import 'package:mindheal/utils/constants/enums.dart';
 import 'package:mindheal/utils/constants/image_strings.dart';
 import 'package:mindheal/utils/constants/sizes.dart';
 
-
 class TCircularIcon extends StatelessWidget {
   const TCircularIcon({super.key, required this.icon, this.onPressed});
+
   final IconData icon;
   final VoidCallback? onPressed;
 
@@ -24,14 +25,7 @@ class TCircularIcon extends StatelessWidget {
 
 // A simple card widget to match the design style
 class QuickCheckInCard extends StatelessWidget {
-  const QuickCheckInCard({
-    super.key,
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    this.onTap,
-  });
+  const QuickCheckInCard({super.key, required this.icon, required this.iconColor, required this.title, required this.subtitle, this.onTap});
 
   final IconData icon;
   final Color iconColor;
@@ -49,14 +43,7 @@ class QuickCheckInCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: const Offset(0, 3))],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,10 +51,7 @@ class QuickCheckInCard extends StatelessWidget {
             Container(
               width: 50,
               height: 50,
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
               child: Icon(icon, color: iconColor, size: 28),
             ),
             const SizedBox(width: TSizes.spaceBtwItems),
@@ -77,18 +61,14 @@ class QuickCheckInCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.grey.shade600),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -148,17 +128,13 @@ class HomePage extends StatelessWidget {
 
                 // Quick Check-In Section
                 Padding(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: TSizes.defaultSpace),
+                  padding: const EdgeInsets.symmetric(horizontal: TSizes.defaultSpace),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Quick Check-In?',
-                        style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                        style: Theme.of(context).textTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold, color: Colors.black87),
                       ),
                       const SizedBox(height: TSizes.spaceBtwItems),
                       _buildQuickCheckInCards(context),
@@ -176,12 +152,7 @@ class HomePage extends StatelessWidget {
   // Matches the top bar look
   Widget _buildCustomHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(
-        top: 10,
-        left: TSizes.defaultSpace,
-        right: TSizes.defaultSpace,
-        bottom: 10,
-      ),
+      padding: const EdgeInsets.only(top: 10, left: TSizes.defaultSpace, right: TSizes.defaultSpace, bottom: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -193,30 +164,24 @@ class HomePage extends StatelessWidget {
             ),
           ),
           // User Profile Picture
-          Obx(
-              () {
-                if (UserController.instance.user.value.profilePicture.isEmpty) {
-                  [
-                 GestureDetector(
-                onTap: () => Get.toNamed(TRoutes.userProfile),
-                child: CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey.shade300,
-                backgroundImage: NetworkImage(UserController.instance.user.value.profilePicture),
+          Obx(() {
+            if (UserController.instance.user.value.profilePicture.isEmpty) {
+              [
+                GestureDetector(
+                  onTap: () => Get.toNamed(TRoutes.userProfile),
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.grey.shade300,
+                    backgroundImage: NetworkImage(UserController.instance.user.value.profilePicture),
+                  ),
                 ),
-                )
-                ];
-                }
-                return GestureDetector(
+              ];
+            }
+            return GestureDetector(
               onTap: () => Get.toNamed(TRoutes.userProfile),
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey.shade300,
-                backgroundImage: AssetImage(TImages.user),
-              ),
+              child: CircleAvatar(radius: 20, backgroundColor: Colors.grey.shade300, backgroundImage: AssetImage(TImages.user)),
             );
-              },
-          )
+          }),
         ],
       ),
     );
@@ -228,29 +193,21 @@ class HomePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Obx(()=> Text(
+          Obx(
+            () => Text(
               'Hi, ${UserController.instance.user.value.fullName} 👋',
-              style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(context).textTheme.titleLarge!.copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
             ).animate().fade().slideY(duration: 500.ms),
           ),
           const SizedBox(height: TSizes.spaceBtwItems / 2),
           Text(
             'Welcome \nto MedAssit AI', // Notice the line break in the design
-            style: Theme.of(context).textTheme.displaySmall!.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-              height: 1.1,
-            ),
+            style: Theme.of(context).textTheme.displaySmall!.copyWith(fontWeight: FontWeight.bold, color: Colors.black, height: 1.1),
           ).animate().fade().slideY(duration: 500.ms, delay: 100.ms),
           const SizedBox(height: TSizes.spaceBtwItems / 2),
           Text(
             'Let\'s work on your wellness journey together',
-            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-              color: Colors.grey.shade700,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(color: Colors.grey.shade700),
           ).animate().fade().slideY(duration: 500.ms, delay: 200.ms),
         ],
       ),
@@ -261,16 +218,18 @@ class HomePage extends StatelessWidget {
     const String scannedPrescription = 'Scan your prescription and get simple explanations instantly.';
     const String myMedication = 'Track your medicines with easy reminders and instructions.';
     final role = UserController.instance.user.value.role;
-    final testReportsTitle = role.name == 'doctor' ? 'Create Test Reports' : 'My Test Reports';
-    final testReportsSubtitle = role.name == 'doctor'
+    final testReportsTitle = role.name == AppRole.doctor.name ? 'Create Test Reports' : 'My Test Reports';
+    final testReportsSubtitle = role.name == AppRole.doctor.name
         ? 'Create structured patient reports, upload files, and build chart-friendly results.'
         : 'Review your saved test reports and see trends over time.';
 
     return Column(
       children: [
         QuickCheckInCard(
-          icon: Iconsax.scan_barcode, // Use an icon similar to the design
-          iconColor: Colors.amber.shade700, // Yellow/Orange tint
+          icon: Iconsax.scan_barcode,
+          // Use an icon similar to the design
+          iconColor: Colors.amber.shade700,
+          // Yellow/Orange tint
           title: 'Scan Prescription',
           subtitle: scannedPrescription,
           onTap: () => Get.toNamed(TRoutes.prescriptionReader),
@@ -278,7 +237,8 @@ class HomePage extends StatelessWidget {
         const SizedBox(height: TSizes.spaceBtwItems),
         QuickCheckInCard(
           icon: Iconsax.hospital,
-          iconColor: Colors.red.shade400, // Red tint
+          iconColor: Colors.red.shade400,
+          // Red tint
           title: 'My Medication',
           subtitle: myMedication,
           onTap: () => Get.toNamed(TRoutes.patientMedications),
@@ -286,7 +246,8 @@ class HomePage extends StatelessWidget {
         const SizedBox(height: TSizes.spaceBtwItems),
         QuickCheckInCard(
           icon: Iconsax.document_text,
-          iconColor: Colors.green.shade500, // Green tint
+          iconColor: Colors.green.shade500,
+          // Green tint
           title: testReportsTitle,
           subtitle: testReportsSubtitle,
           onTap: () => Get.toNamed(TRoutes.testReportList),

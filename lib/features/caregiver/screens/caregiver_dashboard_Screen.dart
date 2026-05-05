@@ -33,11 +33,11 @@ class CaregiverDashboardScreen extends StatelessWidget {
             onPressed: controller.refreshData,
             tooltip: 'Refresh Data',
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications, color: TColors.warning),
-            onPressed: () => Get.toNamed('/notifications'),
-            tooltip: 'Notifications',
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.notifications, color: TColors.warning),
+          //   onPressed: () => Get.toNamed('/notifications'),
+          //   tooltip: 'Notifications',
+          // ),
           IconButton(
             icon: const Icon(Icons.analytics_outlined, color: TColors.primary),
             onPressed: () => Get.toNamed('/test-report-analytics'),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mindheal/common/widgets/appbar/appbar.dart';
 import 'package:mindheal/common/widgets/custom_shapes/containers/t_container.dart';
 import 'package:mindheal/features/test_reports/controller/test_report_detail_controller.dart';
 import 'package:mindheal/features/test_reports/models/test_metric_model.dart';
@@ -7,6 +8,7 @@ import 'package:mindheal/features/test_reports/models/test_report_model.dart';
 import 'package:mindheal/utils/constants/colors.dart';
 import 'package:mindheal/utils/constants/enums.dart';
 import 'package:mindheal/utils/constants/sizes.dart';
+import 'package:mindheal/utils/helpers/helper_functions.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TestReportDetailScreen extends StatefulWidget {
@@ -30,8 +32,9 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = THelperFunctions.isDarkMode(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Test Report Detail')),
+      appBar: TAppBar(title: const Text('Test Report Detail'), showActions: false, showSkipButton: false, showBackArrow: true),
       body: Obx(() {
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
@@ -41,10 +44,7 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(
-                controller.errorMessage.value,
-                textAlign: TextAlign.center,
-              ),
+              child: Text(controller.errorMessage.value, textAlign: TextAlign.center),
             ),
           );
         }
@@ -59,23 +59,25 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(report),
+              _buildHeader(report, isDark),
               const SizedBox(height: TSizes.spaceBtwItems),
-              _buildSummary(report),
+              _buildSummary(report, isDark),
               const SizedBox(height: TSizes.spaceBtwItems),
               _buildMetricsSection(
+                isDark: isDark,
                 title: 'Abnormal Metrics',
                 metrics: controller.abnormalMetrics,
                 emptyLabel: 'No abnormal values were detected in this report.',
               ),
               const SizedBox(height: TSizes.spaceBtwItems),
               _buildMetricsSection(
+                isDark: isDark,
                 title: 'Other Metrics',
                 metrics: controller.normalMetrics,
                 emptyLabel: 'No normal metrics available to display.',
               ),
               const SizedBox(height: TSizes.spaceBtwItems),
-              _buildAttachments(report.attachmentUrls),
+              _buildAttachments(report.attachmentUrls, isDark),
             ],
           ),
         );
@@ -83,11 +85,12 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
     );
   }
 
-  Widget _buildHeader(TestReportModel report) {
+  Widget _buildHeader(TestReportModel report, bool isDark) {
     final statusColor = report.status == TestReportStatus.finalReport ? Colors.green : Colors.orange;
 
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -98,10 +101,7 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      report.reportTypeLabel,
-                      style: Get.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                    ),
+                    Text(report.reportTypeLabel, style: Get.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: TSizes.xs),
                     Text(
                       report.labName.isEmpty ? 'Lab not provided' : report.labName,
@@ -136,9 +136,10 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
     );
   }
 
-  Widget _buildSummary(TestReportModel report) {
+  Widget _buildSummary(TestReportModel report, bool isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -157,24 +158,23 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
     required String title,
     required List<TestMetricModel> metrics,
     required String emptyLabel,
+    required bool isDark,
   }) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: TSizes.md),
           if (metrics.isEmpty)
-            Text(
-              emptyLabel,
-              style: Get.textTheme.bodyMedium?.copyWith(color: TColors.textSecondary),
-            )
+            Text(emptyLabel, style: Get.textTheme.bodyMedium?.copyWith(color: TColors.textSecondary))
           else
             ...metrics.map(
               (metric) => Padding(
                 padding: const EdgeInsets.only(bottom: TSizes.md),
-                child: _buildMetricTile(metric),
+                child: _buildMetricTile(metric,isDark),
               ),
             ),
         ],
@@ -182,12 +182,12 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
     );
   }
 
-  Widget _buildMetricTile(TestMetricModel metric) {
+  Widget _buildMetricTile(TestMetricModel metric,bool isDark) {
     final flagColor = _flagColor(metric.flag);
     final valueLabel = metric.value?.toString() ?? 'N/A';
 
     return TContainer(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       showBorder: true,
       borderColor: Colors.grey.shade200,
       child: Column(
@@ -196,10 +196,7 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  metric.metricLabel,
-                  style: Get.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
+                child: Text(metric.metricLabel, style: Get.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
               ),
               Chip(
                 label: Text(metric.flag.name.toUpperCase()),
@@ -209,44 +206,32 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
             ],
           ),
           const SizedBox(height: TSizes.sm),
-          Text(
-            '$valueLabel ${metric.unit}'.trim(),
-            style: Get.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('$valueLabel ${metric.unit}'.trim(), style: Get.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: TSizes.xs),
-          Text(
-            _referenceLabel(metric),
-            style: Get.textTheme.bodySmall?.copyWith(color: TColors.textSecondary),
-          ),
+          Text(_referenceLabel(metric), style: Get.textTheme.bodySmall?.copyWith(color: TColors.textSecondary)),
         ],
       ),
     );
   }
 
-  Widget _buildAttachments(List<String> attachmentUrls) {
+  Widget _buildAttachments(List<String> attachmentUrls, bool isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Attachments', style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: TSizes.md),
           if (attachmentUrls.isEmpty)
-            Text(
-              'No attachments were uploaded with this report.',
-              style: Get.textTheme.bodyMedium?.copyWith(color: TColors.textSecondary),
-            )
+            Text('No attachments were uploaded with this report.', style: Get.textTheme.bodyMedium?.copyWith(color: TColors.textSecondary))
           else
             ...attachmentUrls.asMap().entries.map(
               (entry) => ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.attach_file),
                 title: Text('Attachment ${entry.key + 1}'),
-                subtitle: Text(
-                  entry.value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                subtitle: Text(entry.value, maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: const Icon(Icons.open_in_new),
                 onTap: () => _openAttachment(entry.value),
               ),
@@ -262,10 +247,7 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: Get.textTheme.labelLarge?.copyWith(color: TColors.textSecondary),
-          ),
+          Text(label, style: Get.textTheme.labelLarge?.copyWith(color: TColors.textSecondary)),
           const SizedBox(height: 2),
           Text(value, style: Get.textTheme.bodyLarge),
         ],
@@ -309,21 +291,13 @@ class _TestReportDetailScreenState extends State<TestReportDetailScreen> {
   Future<void> _openAttachment(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) {
-      Get.snackbar(
-        'Invalid Link',
-        'This attachment URL is not valid.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Invalid Link', 'This attachment URL is not valid.', snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened) {
-      Get.snackbar(
-        'Unable to Open',
-        'Could not open the report attachment.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Unable to Open', 'Could not open the report attachment.', snackPosition: SnackPosition.BOTTOM);
     }
   }
 }

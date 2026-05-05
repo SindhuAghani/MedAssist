@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
+import 'package:mindheal/common/widgets/appbar/appbar.dart';
 import 'package:mindheal/common/widgets/custom_shapes/containers/t_container.dart';
 import 'package:mindheal/features/test_reports/controller/test_report_form_controller.dart';
 import 'package:mindheal/features/test_reports/models/test_metric_model.dart';
@@ -8,6 +9,7 @@ import 'package:mindheal/features/test_reports/models/test_report_template_model
 import 'package:mindheal/utils/constants/colors.dart';
 import 'package:mindheal/utils/constants/enums.dart';
 import 'package:mindheal/utils/constants/sizes.dart';
+import 'package:mindheal/utils/helpers/helper_functions.dart';
 
 class TestReportFormScreen extends StatefulWidget {
   const TestReportFormScreen({super.key});
@@ -30,9 +32,12 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = THelperFunctions.isDarkMode(context);
+
+
     if (!controller.isDoctor) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Create Test Report')),
+        appBar: TAppBar(title: const Text('Create Test Report'),showActions: false,showSkipButton: false,showBackArrow: true,),
         body: const Center(
           child: Padding(
             padding: EdgeInsets.all(24),
@@ -46,8 +51,8 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Test Report'),
+      appBar: TAppBar(
+        title: const Text('Create Test Report'),showActions: false,showSkipButton: false,showBackArrow: true,
       ),
       body: Obx(
         () => Form(
@@ -57,17 +62,17 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(),
+                _buildHeader(isDark),
                 const SizedBox(height: TSizes.spaceBtwItems),
-                _buildPatientSection(),
+                _buildPatientSection(isDark),
                 const SizedBox(height: TSizes.spaceBtwItems),
-                _buildReportMetaSection(context),
+                _buildReportMetaSection(context,isDark),
                 const SizedBox(height: TSizes.spaceBtwItems),
-                _buildMetricsSection(),
+                _buildMetricsSection(isDark),
                 const SizedBox(height: TSizes.spaceBtwItems),
-                _buildAttachmentsSection(),
+                _buildAttachmentsSection(isDark),
                 const SizedBox(height: TSizes.spaceBtwItems),
-                _buildNotesSection(),
+                _buildNotesSection(isDark),
                 const SizedBox(height: TSizes.spaceBtwSections),
                 _buildActions(),
               ],
@@ -78,11 +83,12 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isDark) {
     final template = TTestReportTemplates.templateFor(controller.selectedReportType.value);
 
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -106,11 +112,12 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
     );
   }
 
-  Widget _buildPatientSection() {
+  Widget _buildPatientSection(bool isDark) {
     final patients = controller.allPatients;
 
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -144,9 +151,10 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
     );
   }
 
-  Widget _buildReportMetaSection(BuildContext context) {
+  Widget _buildReportMetaSection(BuildContext context, bool isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -215,11 +223,11 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
     );
   }
 
-  Widget _buildMetricsSection() {
-    //_syncMetricControllers();
+  Widget _buildMetricsSection(bool isDark) {
 
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -230,13 +238,13 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
             style: Get.textTheme.bodySmall?.copyWith(color: TColors.textSecondary),
           ),
           const SizedBox(height: TSizes.md),
-          ...controller.metrics.map(_buildMetricInput),
+          ...controller.metrics.map((metric) => _buildMetricInput(metric, isDark)),
         ],
       ),
     );
   }
 
-  Widget _buildMetricInput(TestMetricModel metric) {
+  Widget _buildMetricInput(TestMetricModel metric, bool isDark) {
     final textController = _metricControllers.putIfAbsent(
       metric.metricKey,
       () => TextEditingController(),
@@ -250,7 +258,7 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: TSizes.md),
       child: TContainer(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: isDark ? TColors.darkContainer : Colors.grey.shade50,
         showBorder: true,
         borderColor: Colors.grey.shade200,
         child: Column(
@@ -290,9 +298,10 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
     );
   }
 
-  Widget _buildAttachmentsSection() {
+  Widget _buildAttachmentsSection(bool isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -341,9 +350,10 @@ class _TestReportFormScreenState extends State<TestReportFormScreen> {
     );
   }
 
-  Widget _buildNotesSection() {
+  Widget _buildNotesSection(bool isDark) {
     return TContainer(
       showShadow: true,
+      backgroundColor: isDark ? TColors.darkContainer : TColors.lightContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
