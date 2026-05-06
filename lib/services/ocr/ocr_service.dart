@@ -10,6 +10,16 @@ import 'prescription_parser_service.dart';
 
 class EmptyOcrTextException implements Exception {}
 
+class VisionOcrException implements Exception {
+  final int statusCode;
+  final String message;
+
+  const VisionOcrException(this.statusCode, this.message);
+
+  @override
+  String toString() => 'Vision OCR failed: $statusCode - $message';
+}
+
 class PrescriptionOcrResult {
   final String imageUrl;
   final String rawText;
@@ -105,10 +115,20 @@ class OcrService {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Vision OCR failed: ${response.statusCode}');
+      throw VisionOcrException(
+        response.statusCode,
+        _extractVisionErrorMessage(response.body),
+      );
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final responseError = body['responses']?[0]?['error']?['message']
+        ?.toString()
+        .trim();
+    if (responseError != null && responseError.isNotEmpty) {
+      throw VisionOcrException(200, responseError);
+    }
+
     final rawText =
         body['responses']?[0]?['fullTextAnnotation']?['text']
             ?.toString()
@@ -117,5 +137,17 @@ class OcrService {
 
     if (rawText.isEmpty) throw EmptyOcrTextException();
     return rawText;
+  }
+
+  String _extractVisionErrorMessage(String responseBody) {
+    try {
+      final body = jsonDecode(responseBody) as Map<String, dynamic>;
+      final message = body['error']?['message']?.toString().trim();
+      if (message != null && message.isNotEmpty) return message;
+    } catch (_) {}
+
+    return responseBody.trim().isEmpty
+        ? 'Google Vision rejected the request.'
+        : responseBody.trim();
   }
 }

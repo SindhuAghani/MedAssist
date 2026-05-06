@@ -146,6 +146,15 @@ class PrescriptionReaderController extends GetxController {
         backgroundColor: Colors.orange,
         colorText: Colors.white,
       );
+    } on VisionOcrException catch (e) {
+      _errorMessage.value = e.toString();
+      Get.snackbar(
+        'Vision OCR Failed',
+        e.message,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } catch (e) {
       _errorMessage.value = 'Processing failed: $e';
       Get.snackbar(
