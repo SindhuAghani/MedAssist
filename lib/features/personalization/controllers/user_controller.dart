@@ -32,8 +32,6 @@ class UserController extends GetxController {
   final verifyPassword = TextEditingController();
   final hidePassword = false.obs;
 
-
-
   // All patients (for caregiver/doctor dropdowns)
   final RxList<UserModel> _allPatients = <UserModel>[].obs;
   List<UserModel> get allPatients => _allPatients;
@@ -62,30 +60,38 @@ class UserController extends GetxController {
   Future<void> onInit() async {
     super.onInit();
     // Load current user from local storage
-    _loadCurrentUser();
+    await loadCurrentUser();
     await loadAllPatients();
   }
 
-    /// Save user Record from any Registration provider
-  Future<void> saveUserRecord({UserModel? user, UserCredential? userCredentials}) async {
+  /// Save user Record from any Registration provider
+  Future<void> saveUserRecord({
+    UserModel? user,
+    UserCredential? userCredentials,
+  }) async {
     try {
       // First UPDATE Rx User and then check if user data is already stored. If not store new data
       final userFromDatabase = await _userRepository.fetchUserDetails();
       this.user.value = userFromDatabase;
 
-
       // If no record already stored.
       if (this.user.value.id.isEmpty) {
         if (userCredentials != null) {
           // Convert Name to First and Last Name
-          final nameParts = UserModel.nameParts(userCredentials.user!.displayName ?? '');
-          final customUsername = UserModel.generateUsername(userCredentials.user!.displayName ?? '');
+          final nameParts = UserModel.nameParts(
+            userCredentials.user!.displayName ?? '',
+          );
+          final customUsername = UserModel.generateUsername(
+            userCredentials.user!.displayName ?? '',
+          );
 
           // Map data
           final newUser = UserModel(
             id: userCredentials.user!.uid,
             firstName: nameParts[0],
-            lastName: nameParts.length > 1 ? nameParts.sublist(1).join(' ') : "",
+            lastName: nameParts.length > 1
+                ? nameParts.sublist(1).join(' ')
+                : "",
             userName: customUsername,
             email: userCredentials.user!.email ?? '',
             profilePicture: userCredentials.user!.photoURL ?? '',
@@ -116,34 +122,44 @@ class UserController extends GetxController {
       print(e.toString());
       TLoaders.warningSnackBar(
         title: 'Data not saved',
-        message: 'Something went wrong while saving your information. You can re-save your data in your Profile.',
+        message:
+            'Something went wrong while saving your information. You can re-save your data in your Profile.',
       );
     }
   }
 
   /// Load current user from local storage
-  Future<void> _loadCurrentUser() async {
+  Future<void> loadCurrentUser() async {
     try {
       //final userId = await TLocalStorage.instance().readData('userId');
       final userId = AuthenticationRepository.instance.getUserID;
-      if (userId != null) {
+      if (userId.isNotEmpty) {
         final userData = await _userRepository.getUserById(userId);
         user.value = userData;
         user.refresh();
+      } else {
+        user.value = UserModel.empty();
       }
     } catch (e) {
       _errorMessage.value = 'Failed to load user: $e';
     }
   }
 
-    /// Upload Profile Picture
+  /// Upload Profile Picture
   uploadUserProfilePicture() async {
     try {
-      final image =
-          await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70, maxHeight: 512, maxWidth: 512);
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+        maxHeight: 512,
+        maxWidth: 512,
+      );
       if (image != null) {
         imageUploading.value = true;
-        final uploadedImage = await _userRepository.uploadImage('Users/Images/Profile/', image);
+        final uploadedImage = await _userRepository.uploadImage(
+          'Users/Images/Profile/',
+          image,
+        );
         profileImageUrl.value = uploadedImage;
         Map<String, dynamic> newImage = {'ProfilePicture': uploadedImage};
         await _userRepository.updateSingleField(newImage);
@@ -151,15 +167,21 @@ class UserController extends GetxController {
         user.refresh();
 
         imageUploading.value = false;
-        TLoaders.successSnackBar(title: 'Congratulations', message: 'Your Profile Image has been updated!');
+        TLoaders.successSnackBar(
+          title: 'Congratulations',
+          message: 'Your Profile Image has been updated!',
+        );
       }
     } catch (e) {
       imageUploading.value = false;
-      TLoaders.errorSnackBar(title: 'OhSnap', message: 'Something went wrong: $e');
+      TLoaders.errorSnackBar(
+        title: 'OhSnap',
+        message: 'Something went wrong: $e',
+      );
     }
   }
 
-    /// Delete Account Warning
+  /// Delete Account Warning
   void deleteAccountWarningPopup() {
     Get.defaultDialog(
       contentPadding: const EdgeInsets.all(TSizes.md),
@@ -168,8 +190,14 @@ class UserController extends GetxController {
           'Are you sure you want to delete your account permanently? This action is not reversible and all of your data will be removed permanently.',
       confirm: ElevatedButton(
         onPressed: () async => deleteUserAccount(),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
-        child: const Padding(padding: EdgeInsets.symmetric(horizontal: TSizes.lg), child: Text('Delete')),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          side: const BorderSide(color: Colors.red),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: TSizes.lg),
+          child: Text('Delete'),
+        ),
       ),
       cancel: OutlinedButton(
         child: const Text('Cancel'),
@@ -178,14 +206,16 @@ class UserController extends GetxController {
     );
   }
 
-    /// Delete User Account
+  /// Delete User Account
   void deleteUserAccount() async {
     try {
       TFullScreenLoader.openLoadingDialog('Processing', TImages.docerAnimation);
 
       /// First re-authenticate user
       final auth = AuthenticationRepository.instance;
-      final provider = auth.firebaseUser!.providerData.map((e) => e.providerId).first;
+      final provider = auth.firebaseUser!.providerData
+          .map((e) => e.providerId)
+          .first;
       if (provider.isNotEmpty) {
         // Re Verify Auth Email
         if (provider == 'password') {
@@ -217,7 +247,10 @@ class UserController extends GetxController {
       }
 
       await AuthenticationRepository.instance
-          .reAuthenticateWithEmailAndPassword(verifyEmail.text.trim(), verifyPassword.text.trim());
+          .reAuthenticateWithEmailAndPassword(
+            verifyEmail.text.trim(),
+            verifyPassword.text.trim(),
+          );
       await AuthenticationRepository.instance.deleteAccount();
       TFullScreenLoader.stopLoading();
       Get.offAllNamed(TRoutes.logIn);
@@ -227,7 +260,7 @@ class UserController extends GetxController {
     }
   }
 
-    /// Update user record after login (e.g., to update token)
+  /// Update user record after login (e.g., to update token)
   Future<void> updateUserRecordWithToken(String newToken) async {
     try {
       // Create a map to store the fields we want to update (e.g., token)
@@ -397,10 +430,16 @@ class UserController extends GetxController {
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       filteredPatients = filteredPatients
-          .where((patient) =>
-      patient.fullName.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          patient.email.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          patient.phoneNumber.contains(searchQuery))
+          .where(
+            (patient) =>
+                patient.fullName.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                patient.email.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                patient.phoneNumber.contains(searchQuery),
+          )
           .toList()
           .obs;
     }
@@ -426,8 +465,12 @@ class UserController extends GetxController {
   Map<String, int> getPatientStatistics() {
     final total = _allPatients.length;
     final active = _allPatients.where((p) => p.isProfileActive).length;
-    final verified = _allPatients.where((p) => p.verificationStatus == VerificationStatus.approved).length;
-    final pending = _allPatients.where((p) => p.verificationStatus == VerificationStatus.pending).length;
+    final verified = _allPatients
+        .where((p) => p.verificationStatus == VerificationStatus.approved)
+        .length;
+    final pending = _allPatients
+        .where((p) => p.verificationStatus == VerificationStatus.pending)
+        .length;
 
     return {
       'total': total,

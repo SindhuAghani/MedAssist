@@ -6,6 +6,7 @@ import 'package:mindheal/data/repositories/prescription/prescription_repository.
 import 'package:mindheal/data/repositories/reminders/medication_dose_repository.dart';
 import 'package:mindheal/features/personalization/controllers/user_controller.dart';
 import 'package:mindheal/routes/routes.dart';
+import 'package:mindheal/services/ocr/ocr_service.dart';
 import 'package:mindheal/features/prescription/models/prescription_model.dart';
 import 'package:translator/translator.dart';
 import 'package:mindheal/utils/constants/enums.dart';
@@ -13,9 +14,14 @@ import 'package:uuid/uuid.dart';
 
 class PrescriptionReaderController extends GetxController {
   // Dependencies
-  final PrescriptionRepository _prescriptionRepo = Get.put(PrescriptionRepository());
-  final MedicationDoseRepository _doseRepo = Get.put(MedicationDoseRepository());
+  final PrescriptionRepository _prescriptionRepo = Get.put(
+    PrescriptionRepository(),
+  );
+  final MedicationDoseRepository _doseRepo = Get.put(
+    MedicationDoseRepository(),
+  );
   final UserController _userController = Get.put(UserController());
+  final OcrService _ocrService = OcrService();
 
   // Reactive variables
   final Rx<File?> _prescriptionImage = Rx<File?>(null);
@@ -27,9 +33,12 @@ class PrescriptionReaderController extends GetxController {
   final RxBool _isSaving = false.obs;
   final RxBool _isTranslating = false.obs;
   final RxString _errorMessage = ''.obs;
-  final Rx<PrescriptionModel> _editingPrescription = PrescriptionModel.empty().obs;
+  final Rx<PrescriptionModel> _editingPrescription =
+      PrescriptionModel.empty().obs;
   final RxBool _isEditMode = false.obs;
-  final Rx<PrescriptionModel?> _currentPrescription = Rx<PrescriptionModel?>(null);
+  final Rx<PrescriptionModel?> _currentPrescription = Rx<PrescriptionModel?>(
+    null,
+  );
   final RxList<Medication> _extractedMedications = <Medication>[].obs;
 
   // Getters
@@ -93,169 +102,61 @@ class PrescriptionReaderController extends GetxController {
   Future<void> _processImage(File imageFile) async {
     _isProcessing.value = true;
     _extractedText.value = '';
+    _simplifiedText.value = '';
     _translatedText.value = '';
     _extractedMedications.clear();
 
     try {
-      // Step 1: Upload image to Firebase Storage
-      final imageUrl = await _uploadImageToStorage(imageFile);
-      _prescriptionImageUrl.value = imageUrl;
-
-      // Step 2: Extract text using OCR (mock for now)
-      await _extractTextFromImage(imageFile);
-
-      // Step 3: Parse medications from extracted text
-      await _parseMedicationsFromText();
-
-      // Step 4: Simplify text using AI (mock for now)
-      await _simplifyMedicalText();
-
-      // Step 5: Navigate to preview screen
-      if (_extractedText.isNotEmpty) {
-        Get.toNamed(
-            TRoutes.prescriptionResults,
-            arguments: {
-              'extractedText': _extractedText.value,
-              'simplifiedText': _simplifiedText.value,
-              'medications': _extractedMedications,
-              'imageUrl': imageUrl,
-            }
-        );
-      }
-
-    } catch (e) {
-      _errorMessage.value = 'Processing failed: $e';
-    } finally {
-      _isProcessing.value = false;
-    }
-  }
-
-  /// Upload image to Firebase Storage
-  Future<String> _uploadImageToStorage(File imageFile) async {
-    try {
-
-      // Create a unique prescription ID
-      final prescriptionId = _uuid.v4();
-
-      // Upload to Firebase Storage
-      final imageUrl = await _prescriptionRepo.uploadPrescriptionImage(
-          imageFile.path,
-          prescriptionId
+      final currentUser = _userController.user.value;
+      final result = await _ocrService.scanPrescription(
+        imageFile: imageFile,
+        userId: currentUser.id,
       );
 
-      return imageUrl;
+      _prescriptionImageUrl.value = result.imageUrl;
+      _extractedText.value = result.rawText;
+      _extractedMedications.assignAll(result.medications);
+      _simplifiedText.value = _buildMedicationSummary(
+        result.medications,
+        result.rawText,
+      );
+
+      if (result.medicineExtractionFailed) {
+        _showMedicineExtractionFailedSnackBar();
+      }
+
+      if (_extractedText.isNotEmpty) {
+        Get.toNamed(
+          TRoutes.prescriptionResults,
+          arguments: {
+            'extractedText': _extractedText.value,
+            'simplifiedText': _simplifiedText.value,
+            'medications': _extractedMedications,
+            'imageUrl': result.imageUrl,
+          },
+        );
+      }
+    } on EmptyOcrTextException {
+      _errorMessage.value =
+          'Could not read prescription. Please retake the photo in good lighting.';
+      Get.snackbar(
+        'Could not read prescription',
+        'Could not read prescription. Please retake the photo in good lighting.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
     } catch (e) {
-      throw 'Failed to upload image: $e';
-    }
-  }
-
-  /// Extract text from image (mock OCR - replace with actual OCR service)
-  Future<void> _extractTextFromImage(File imageFile) async {
-    try {
-      // TODO: Replace with actual OCR integration (Google ML Kit, Tesseract, etc.)
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Mock extracted text
-      _extractedText.value = '''
-    
-      MEDICATIONS:
-      1. Amoxicillin 500mg
-        - Dosage: 1 tablet
-        - Frequency: Every 8 hours
-        - Duration: 7 days
-        - Instructions: Take with food
-        
-      2. Ibuprofen 400mg
-        - Dosage: 1 tablet
-        - Frequency: Every 6 hours as needed
-        - Duration: 5 days
-        - Instructions: Take with plenty of water
-        
-      3. Guaifenesin 600mg
-        - Dosage: 1 tablet
-        - Frequency: Twice daily
-        - Duration: 7 days
-        - Instructions: Drink plenty of fluids
-        
-      FOLLOW-UP: Return in 7 days if symptoms persist
-      ''';
-
-    } catch (e) {
-      throw 'OCR extraction failed: $e';
-    }
-  }
-
-  /// Parse medications from extracted text
-  Future<void> _parseMedicationsFromText() async {
-    try {
-      // TODO: Implement actual medication parsing logic
-      // For now, create mock medications based on extracted text
-
-      final medications = <Medication>[
-        Medication(
-          id: _uuid.v4(),
-          name: 'Amoxicillin',
-          genericName: 'Amoxicillin',
-          dosage: '500mg',
-          frequency: 'Every 8 hours',
-          duration: '7 days',
-          instructions: 'Take with food',
-          startDate: DateTime.now(),
-          endDate: DateTime.now().add(const Duration(days: 7)),
-          timings: ['08:00', '16:00', '00:00'],
-          withFood: true,
-          sideEffects: ['Nausea', 'Diarrhea'],
-          notes: 'Complete full course even if feeling better',
-        ),
-        Medication(
-          id: _uuid.v4(),
-          name: 'Ibuprofen',
-          genericName: 'Ibuprofen',
-          dosage: '400mg',
-          frequency: 'Every 6 hours as needed',
-          duration: '5 days',
-          instructions: 'Take with plenty of water',
-          startDate: DateTime.now(),
-          endDate: DateTime.now().add(const Duration(days: 5)),
-          timings: ['06:00', '12:00', '18:00', '00:00'],
-          withFood: false,
-          sideEffects: ['Stomach upset', 'Dizziness'],
-          notes: 'Take only when needed for pain',
-        ),
-      ];
-
-      _extractedMedications.assignAll(medications);
-
-    } catch (e) {
-      throw 'Failed to parse medications: $e';
-    }
-  }
-
-  /// Simplify medical text using AI
-  Future<void> _simplifyMedicalText() async {
-    try {
-      // TODO: Integrate with Gemini API for AI simplification
-      await Future.delayed(const Duration(seconds: 1));
-
-      _simplifiedText.value = '''
-      Prescription Summary:
-      
-      1. Amoxicillin 500mg
-         - Take 1 tablet every 8 hours (3 times a day)
-         - Take with food
-         - Continue for 7 days
-         - Complete all tablets even if you feel better
-         
-      2. Ibuprofen 400mg
-         - Take 1 tablet every 6 hours only when needed for pain
-         - Take with plenty of water
-         - Use for up to 5 days
-         
-      Important: Return to doctor in 7 days if symptoms don't improve.
-      ''';
-
-    } catch (e) {
-      throw 'AI simplification failed: $e';
+      _errorMessage.value = 'Processing failed: $e';
+      Get.snackbar(
+        'Processing Failed',
+        'Unable to scan prescription right now. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      _isProcessing.value = false;
     }
   }
 
@@ -346,10 +247,7 @@ class PrescriptionReaderController extends GetxController {
       _currentPrescription.value = prescription;
 
       // Navigate to success screen
-      Get.offAllNamed(
-        TRoutes.prescriptionSuccess,
-        arguments: prescriptionId,
-      );
+      Get.offAllNamed(TRoutes.prescriptionSuccess, arguments: prescriptionId);
 
       Get.snackbar(
         'Success',
@@ -358,7 +256,6 @@ class PrescriptionReaderController extends GetxController {
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
-
     } catch (e) {
       debugPrint('Error saving prescription: $e');
       _errorMessage.value = 'Failed to save prescription: $e';
@@ -407,9 +304,43 @@ class PrescriptionReaderController extends GetxController {
         .toList();
   }
 
+  String _buildMedicationSummary(List<Medication> medications, String rawText) {
+    if (medications.isEmpty) {
+      return rawText.trim().isEmpty
+          ? 'Prescription scanned, but no medicines were extracted.'
+          : 'Prescription scanned. Please review the extracted text and add medicines manually if needed.';
+    }
+
+    final buffer = StringBuffer('Prescription Summary:\n\n');
+    for (var index = 0; index < medications.length; index++) {
+      final medication = medications[index];
+      buffer.writeln('${index + 1}. ${medication.name} ${medication.dosage}');
+      buffer.writeln('   - Take ${medication.frequency}');
+      if ((medication.instructions ?? '').trim().isNotEmpty) {
+        buffer.writeln('   - ${medication.instructions}');
+      }
+      buffer.writeln('   - Continue for ${medication.duration}');
+      if (index != medications.length - 1) buffer.writeln();
+    }
+
+    return buffer.toString();
+  }
+
+  void _showMedicineExtractionFailedSnackBar() {
+    Get.snackbar(
+      'Medicine Extraction Failed',
+      'Prescription scanned but medicines could not be extracted. Please add medicines manually.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
+    );
+  }
+
   /// Update medication timings
   void updateMedicationTiming(String medicationId, List<String> newTimings) {
-    final index = _extractedMedications.indexWhere((med) => med.id == medicationId);
+    final index = _extractedMedications.indexWhere(
+      (med) => med.id == medicationId,
+    );
     if (index != -1) {
       final updatedMedication = _extractedMedications[index];
       // Create new medication with updated timings
@@ -445,7 +376,6 @@ class PrescriptionReaderController extends GetxController {
     _extractedMedications.removeWhere((med) => med.id == medicationId);
     _extractedMedications.refresh();
   }
-
 
   /// Method to load prescription for editing
   void loadPrescriptionForEditing(PrescriptionModel prescription) {
@@ -483,7 +413,8 @@ class PrescriptionReaderController extends GetxController {
         clinicName: clinicName,
         notes: notes,
         caregiverId: caregiverId ?? '',
-        datePrescribed: datePrescribed ?? _editingPrescription.value.datePrescribed,
+        datePrescribed:
+            datePrescribed ?? _editingPrescription.value.datePrescribed,
         validUntil: validUntil,
         diagnosis: diagnosis ?? _editingPrescription.value.diagnosis,
         medications: extractedMedications,
@@ -509,7 +440,6 @@ class PrescriptionReaderController extends GetxController {
 
       // Navigate back
       Get.back();
-
     } catch (e) {
       _isSaving.value = false;
       Get.snackbar(
@@ -521,7 +451,6 @@ class PrescriptionReaderController extends GetxController {
       );
     }
   }
-
 
   // Method to reset edit mode
   void resetEditMode() {
